@@ -17,7 +17,9 @@ import {
   addDoc,
   collection,
   doc,
+  where,
   onSnapshot,
+  query,
   setDoc,
   updateDoc,
 } from "@firebase/firestore";
@@ -35,6 +37,7 @@ const randomId = nanoid();
 export default function Chat() {
   const [roomHash, setRoomHash] = useState("");
   const [messages, setMessages] = useState([]);
+  const [expoToken, setExpoToken] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedImageView, setSeletedImageView] = useState("");
   const {
@@ -45,7 +48,7 @@ export default function Chat() {
   const room = route.params.room;
   const selectedImage = route.params.image;
   const userB = route.params.user;
-
+  //console.log(userB)
   const senderUser = currentUser.photoURL
     ? {
         name: currentUser.displayName,
@@ -58,10 +61,10 @@ export default function Chat() {
 
   const roomRef = doc(db, "rooms", roomId);
   const roomMessagesRef = collection(db, "rooms", roomId, "messages");
-
+  
   useEffect(() => {
     (async () => {
-      if (!room) {
+      if (!room) {        
         const currUserData = {
           displayName: currentUser.displayName,
           email: currentUser.email,
@@ -74,7 +77,7 @@ export default function Chat() {
           email: userB.email,
         };
         if (userB.photoURL) {
-          userBData.photoURL = userB.photoURL;
+          userBData.photoURL = userB.photoURL;          
         }
         const roomData = {
           participants: [currUserData, userBData],
@@ -94,7 +97,27 @@ export default function Chat() {
     })();
   }, []);
 
+  useEffect(()=>{
+    const userQuery = query(
+      collection(db, "users"),
+      where("email", "==", route.params.user.email)
+    );
+
+    const unsubscribe = onSnapshot(userQuery, (querySnapshot) => {
+      const parsedUser = querySnapshot.docs.map((e)=>({
+       ...e.data()
+      }))
+      if(parsedUser[0] !== undefined){
+        if(parsedUser[0].expoToken){
+          setExpoToken(parsedUser[0].expoToken)
+        }
+      }
+    })
+    return () => unsubscribe();
+  },[])
+
   useEffect(() => {
+    
     const unsubscribe = onSnapshot(roomMessagesRef, (querySnapshot) => {
       const messagesFirestore = querySnapshot
         .docChanges()
@@ -151,6 +174,26 @@ export default function Chat() {
     }
   }
 
+  async function sendPushNotification(expoPushToken,text) {
+    const message = {
+      to: expoPushToken,
+      sound: 'default',
+      title: 'New Message',
+      body: text,
+      data: { someData: 'goes here' },
+    };
+  
+    await fetch('https://exp.host/--/api/v2/push/send', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Accept-encoding': 'gzip, deflate',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(message),
+    });
+  }
+
   return (
     <ImageBackground
       resizeMode="cover"
@@ -160,7 +203,7 @@ export default function Chat() {
       <GiftedChat
         onSend={onSend}
         messages={messages}
-        user={senderUser}
+        user={senderUser}        
         renderAvatar={null}
         renderActions={(props) => (
           <Actions
@@ -189,7 +232,7 @@ export default function Chat() {
                 backgroundColor: colors.primary,
                 alignItems: "center",
                 justifyContent: "center",
-                marginBottom: 5,
+                marginBottom: 0,
               }}
               onPress={() => {
                 if (text && onSend) {
@@ -201,6 +244,8 @@ export default function Chat() {
                     },
                     true
                   );
+
+                  sendPushNotification(expoToken,text)
                 }
               }}
             >
@@ -216,7 +261,8 @@ export default function Chat() {
               marginRight: 10,
               marginBottom: 2,
               borderRadius: 20,
-              paddingTop: 5,
+              padding: 3,
+              borderTopColor:"transparent"
             }}
           />
         )}

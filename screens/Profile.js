@@ -7,6 +7,7 @@ import {
   Image,
   TextInput,
   Button,
+  ActivityIndicator,
 } from "react-native";
 import Constants from "expo-constants";
 import GlobalContext from "../context/Context";
@@ -21,6 +22,7 @@ export default function Profile() {
   const [displayName, setDisplayName] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const navigation = useNavigation();
   useEffect(() => {
     (async () => {
@@ -33,9 +35,12 @@ export default function Profile() {
     theme: { colors },
   } = useContext(GlobalContext);
 
+
+
   async function handlePress() {
+    setIsLoading(true)
     const user = auth.currentUser;
-    let photoURL;
+    let photoURL;   
     if (selectedImage) {
       const { url } = await uploadImage(
         selectedImage,
@@ -46,7 +51,9 @@ export default function Profile() {
     }
     const userData = {
       displayName,
-      email: user.email,
+      isAccepted: false,
+      userType:"alumn",
+      email: user.email     
     };
     if (photoURL) {
       userData.photoURL = photoURL;
@@ -55,13 +62,15 @@ export default function Profile() {
     await Promise.all([
       updateProfile(user, userData),
       setDoc(doc(db, "users", user.uid), { ...userData, uid: user.uid }),
-    ]);
-    navigation.navigate("home");
+    ]).catch((error)=>{
+      setIsLoading(false)
+      console.log(error)});
+    navigation.navigate("teacher");
   }
 
   async function handleProfilePicture() {
     const result = await pickImage();
-    if (!result.cancelled) {
+    if (!result.canceled) {
       setSelectedImage(result.uri);
     }
   }
@@ -72,6 +81,9 @@ export default function Profile() {
   if (permissionStatus !== "granted") {
     return <Text>You need to allow this permission</Text>;
   }
+  if (isLoading) return (<View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
+    <ActivityIndicator size={55} color={colors.primary}/>
+  </View>)
   return (
     <React.Fragment>
       <StatusBar style="auto" />

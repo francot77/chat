@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useContext } from "react";
-import { Text, View, LogBox } from "react-native";
+import React, { useState, useEffect, useContext,useRef } from "react";
+import { Text, View, LogBox,ActivityIndicator } from "react-native";
 import { useAssets } from "expo-asset";
+import * as Device from 'expo-device';
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import { NavigationContainer } from "@react-navigation/native";
@@ -11,43 +12,51 @@ import ContextWrapper from "./context/ContextWrapper";
 import Context from "./context/Context";
 import Profile from "./screens/Profile";
 import Chats from "./screens/Chats";
-import Photo from "./screens/Photo";
+import Teacher from "./screens/Teacher"
 import { Ionicons } from "@expo/vector-icons";
 import Contacts from "./screens/Contacts";
 import Chat from './screens/Chat'
 import ChatHeader from './components/ChatHeader'
+import * as Notifications from 'expo-notifications';
+import GlobalContext from "./context/Context";
 LogBox.ignoreLogs([
   "Setting a timer",
   "AsyncStorage has been extracted from react-native core and will be removed in a future release.",
+  "Method has been deprecated. Please instead use"
 ]);
 
 const Stack = createStackNavigator();
 const Tab = createMaterialTopTabNavigator();
 
+Notifications.setNotificationHandler(null);
+
 function App() {
   const [currUser, setCurrUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); 
+  const [expoToken, setExpoToken] = useState("");
   const {
-    theme: { colors },
-  } = useContext(Context);
-
-  useEffect(() => {
+    theme: { colors }, } = useContext(Context);  
+  useEffect(() => {    
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setLoading(false);
       if (user) {
         setCurrUser(user);
-      }
+      }else(setCurrUser(null))
+      setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
+  
+
   if (loading) {
-    return <Text>Loading...</Text>;
+    return <View style={{flex:1,alignItems:"center",justifyContent:"center"}}>
+    <ActivityIndicator size={55} color={colors.primary}/>
+  </View>
   }
 
   return (
     <NavigationContainer>
-      {!currUser ? (
+      {!currUser && !loading ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="signIn" component={SignIn} />
         </Stack.Navigator>
@@ -71,9 +80,14 @@ function App() {
           )}
           <Stack.Screen
             name="home"
-            options={{ title: "Whatsapp" }}
+            options={{ title: "Online English MBG" }}
             component={Home}
           />
+          <Stack.Screen
+          name="teacher"
+          options={{ title: "Select Teacher",headerLeft:null}}
+          component={Teacher}
+        />
           <Stack.Screen
             name="contacts"
             options={{ title: "Select Contacts" }}
@@ -86,6 +100,65 @@ function App() {
   );
 }
 function Home() {
+  const [expoPushToken, setExpoPushToken] = useState('');
+  const [notification, setNotification] = useState(false);  
+  const notificationListener = useRef();
+  const responseListener = useRef();
+
+  useEffect(() => {
+    registerForPushNotificationsAsync().then(token => {
+      setExpoPushToken(token)
+      //Storage.save(EXPO_TOKEN,String(token))
+    });
+    // This listener is fired whenever a notification is received while the app is foregrounded
+    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+      setNotification(notification);
+    });
+
+    // This listener is fired whenever a user taps on or interacts with a notification (works when app is foregrounded, backgrounded, or killed)
+    responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      if (response.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
+        Notifications.dismissNotificationAsync(response.notification.request.identifier);
+      }
+    });
+
+    return () => {
+      Notifications.removeNotificationSubscription(notificationListener.current);
+      Notifications.removeNotificationSubscription(responseListener.current);
+    };
+  }, []);
+
+  async function registerForPushNotificationsAsync() {
+    let token;
+    if (Device.isDevice) {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      if (finalStatus !== 'granted') {
+        alert('Failed to get push token for push notification!');
+        return;
+      }
+      token = (await Notifications.getExpoPushTokenAsync()).data;     
+      console.log("APP.js: "+token);
+      setExpoPushToken(token)
+    } else {
+      alert('Must use physical device for Push Notifications');
+    }
+  
+    if (Platform.OS === 'android') {
+      Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+  
+    return token;
+  }
   const {
     theme: { colors },
   } = useContext(Context);
@@ -118,13 +191,16 @@ function Home() {
       }}
       initialRouteName="chats"
     >
-      <Tab.Screen name="photo" component={Photo} />
-      <Tab.Screen name="chats" component={Chats} />
+      <Tab.Screen name="chats">
+      {(navigation) => <Chats {...navigation} expoPushToken={expoPushToken} />}
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
 
 function Main() {
+const {theme:{colors}} = useContext(GlobalContext)
+  
   const [assets] = useAssets(
     require("./assets/icon-square.png"),
     require("./assets/chatbg.png"),
@@ -132,7 +208,9 @@ function Main() {
     require("./assets/welcome-img.png")
   );
   if (!assets) {
-    return <Text>Loading ..</Text>;
+    return <View style={{flex:1,alignItems:"center",justifyContent:"center"}}>
+    <ActivityIndicator size={55} color={colors.primary}/>
+  </View>
   }
   return (
     <ContextWrapper>
@@ -140,5 +218,6 @@ function Main() {
     </ContextWrapper>
   );
 }
+
 
 export default Main;

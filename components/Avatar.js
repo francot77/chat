@@ -1,7 +1,7 @@
 import React from "react";
 import { Image } from "react-native";
 
-export default function Avatar({ size, user }) {
+export default function Avatar({ size, user }) { 
   return (
     <Image
       style={{

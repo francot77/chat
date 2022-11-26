@@ -31,7 +31,7 @@ export default function SignIn() {
       <Text
         style={{ color: colors.foreground, fontSize: 24, marginBottom: 20 }}
       >
-        Welcome to Whatsapp
+        Welcome to Online English MBG
       </Text>
       <Image
         source={require("../assets/welcome-img.png")}
@@ -65,20 +65,25 @@ export default function SignIn() {
           <Button
             title={mode === "signUp" ? "Sign Up" : "Sign in"}
             disabled={!password || !email}
-            color={colors.secondary}
+            color={colors.primary}
             onPress={handlePress}
           />
         </View>
         <TouchableOpacity
-          style={{ marginTop: 15 }}
+          style={{ marginTop: 15, flexDirection:"row" }}
           onPress={() =>
             mode === "signUp" ? setMode("signIn") : setMode("signUp")
           }
         >
           <Text style={{ color: colors.secondaryText }}>
             {mode === "signUp"
-              ? "Already have an account? Sign in"
-              : "Don't have an account? Sign Up"}
+              ? "Already have an account? "
+              : "Don't have an account? "}
+          </Text>
+          <Text style={{ color: colors.primary }}>
+            {mode === "signUp"
+              ? "Sign in"
+              : "Sign Up"}
           </Text>
         </TouchableOpacity>
       </View>

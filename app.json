@@ -1,13 +1,13 @@
 {
   "expo": {
-    "name": "wp-clone",
-    "slug": "wp-clone",
-    "version": "1.0.0",
+    "name": "OEnglishMBG",
+    "slug": "OEnglishMBG",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
       "image": "./assets/splash.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#ffffff"
     },
     "updates": {
@@ -19,11 +19,20 @@
     "ios": {
       "supportsTablet": true
     },
+    "notification": {
+      "icon": "./assets/pushn.png",
+      "color": "#CA2C92",
+      "androidMode": "default",
+      "androidCollapsedTitle": "MBGOEnglish",
+      "iosDisplayInForeground": true
+    },
     "android": {
+      "googleServicesFile":"./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FFFFFF"
-      }
+      },
+      "package": "com.OEnglishMBG"
     },
     "web": {
       "favicon": "./assets/favicon.png"

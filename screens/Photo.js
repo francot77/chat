@@ -5,17 +5,17 @@ import { pickImage } from "../utils";
 
 export default function Photo() {
   const navigation = useNavigation();
-  const [cancelled, setCancelled] = useState(false);
+  const [canceled, setCanceled] = useState(false);
   useEffect(() => {
     const unsubscribe = navigation.addListener("focus", async () => {
       const result = await pickImage();
       navigation.navigate("contacts", { image: result });
-      if (result.canceled) {
-        setCancelled(true);
-        setTimeout(() => navigation.navigate("chats"), 100);
+      if (result.cancelled) {
+        setCanceled(true);
+        navigation.navigate("chats")
       }
     });
     return () => unsubscribe()
-  }, [navigation, cancelled]);
+  }, [navigation, canceled]);
   return <View />;
 }
