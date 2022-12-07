@@ -23,9 +23,36 @@ export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
 
-export function signIn(email, password) {
-  return signInWithEmailAndPassword(auth, email, password);
+export async function signIn(email, password) {
+  let response;
+  await signInWithEmailAndPassword(auth, email, password).then(()=>{
+    response= "success"
+    response = true
+  }).catch(error=>{
+    
+    response = error.code
+         
+  })
+  return response
 }
-export function signUp(email, password) {
-  return createUserWithEmailAndPassword(auth, email, password);
+
+export async function signUp(email, password) {
+  let response;
+  await createUserWithEmailAndPassword(auth, email, password).then(()=>{
+    response = true
+  }).catch(error=>{
+    switch(error.code) {
+      case 'auth/email-already-in-use':
+        response = 'Email already in use !'
+      case 'auth/invalid-email':
+        response = 'invalid email!'
+            break;
+      case 'auth/weak-password':
+        response = 'auth/weak-password'
+      default: console.log(error.code)
+            break;
+          }
+         
+  })
+  return response
 }

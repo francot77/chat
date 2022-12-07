@@ -48,7 +48,7 @@ export async function uploadImage(uri, path, fName) {
 const palette = {
   tealGreen: "#128c7e",
   tealGreenDark: "#075e54",
-  violet:"#AB60DE",
+  violet:"#4385fd",
   green: "#25d366",
   lime: "#dcf8c6",
   skyblue: "#34b7f1",

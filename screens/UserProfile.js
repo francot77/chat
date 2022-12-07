@@ -15,15 +15,18 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { pickImage, askForPermission, uploadImage } from "../utils";
 import { auth, db } from "../firebase";
 import { updateProfile } from "@firebase/auth";
-import { doc, setDoc } from "@firebase/firestore";
+import { doc,query,where,onSnapshot,collection, setDoc } from "@firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
-const userIcon = "https://firebasestorage.googleapis.com/v0/b/englishchat-8f15f.appspot.com/o/images%2Fuser-icon.png?alt=media&token=9e46037b-0bbd-48ed-b806-0fd14010eca4"
-export default function Profile() {
+
+export default function UserProfile() {
   const [displayName, setDisplayName] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [permissionStatus, setPermissionStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [chatsToUpdate, setChatsToUpdate] = useState(null);
   const navigation = useNavigation();
+  const { currentUser } = auth;
+
   useEffect(() => {
     (async () => {
       const status = await askForPermission();
@@ -31,41 +34,55 @@ export default function Profile() {
     })();
   }, []);
 
-  const {
+  const {rooms,
     theme: { colors },
   } = useContext(GlobalContext);
 
-
-
+  //console.log(currentUser.photoURL)
   async function handlePress() {
     setIsLoading(true)
     const user = auth.currentUser;
     let photoURL;   
     if (selectedImage) {
-      
-    }else {      
-      photoURL = userIcon;
+      const { url } = await uploadImage(
+        selectedImage,
+        `images/${user.uid}`,
+        "profilePicture"
+      );
+      photoURL = url;
     }
     const userData = {
       displayName,
-      isAccepted: false,
-      deleted:false,
-      userType:"alumn",
-      email: user.email     
     };
     if (photoURL) {
       userData.photoURL = photoURL;
     }
+    if(photoURL){
+    rooms.map(async(e)=>{
+        let newdata;
+        newdata = e.participants;
+        newdata.map(e=>{
+            if(e.email==currentUser.email){
+                e.displayName = displayName
+                e.photoURL = photoURL;
+            }
+        })
+        await setDoc(doc(db,"rooms",e.id),{participants:newdata},{merge:true})
+        
+    })}
 
     await Promise.all([
       updateProfile(user, userData),
-      setDoc(doc(db, "users", user.uid), { ...userData, uid: user.uid }),
-    ]).catch((error)=>{
-      setIsLoading(false)
+      setDoc(doc(db, "users", user.uid), { ...userData, uid: user.uid },{merge:true}),
+    ]).then(()=>{
+        setIsLoading(false)
+    }).catch((error)=>{
       console.log(error)});
-    navigation.navigate("teacher");
   }
 
+  const handleChange = () =>{
+    navigation.navigate("teacher");
+  }
   async function handleProfilePicture() {
     const result = await pickImage();
     if (!result.canceled) {
@@ -95,10 +112,10 @@ export default function Profile() {
         }}
       >
         <Text style={{ fontSize: 22, color: colors.foreground }}>
-          Informacion de perfil
+          Profile Info
         </Text>
         <Text style={{ fontSize: 14, color: colors.text, marginTop: 20 }}>
-          Por favor ingrese su nombre y una foto de perfil
+          Aqui puedes cambiar tu nombre o foto de perfil
         </Text>
         <TouchableOpacity
           onPress={handleProfilePicture}
@@ -126,7 +143,7 @@ export default function Profile() {
           )}
         </TouchableOpacity>
         <TextInput
-          placeholder="Inserte su nombre aqui"
+          placeholder="Escribe tu nuevo nombre"
           value={displayName}
           onChangeText={setDisplayName}
           style={{
@@ -136,11 +153,18 @@ export default function Profile() {
             width: "100%",
           }}
         />
-        <View style={{ marginTop: "auto", width: 80 }}>        
+        <View style={{ marginTop: "auto" }}>
+            <Button
+            title="Cambiar Profesora"
+            color={colors.primary}
+            onPress={handleChange}
+            />
+            </View>
+        <View style={{ marginTop: "auto" }}>
           <Button
-            title="Next"
+            title="Actualizar perfil"
             color={colors.secondary}
-            onPress={handlePress}
+            onPress={(handlePress)}
             disabled={!displayName}
           />
         </View>
