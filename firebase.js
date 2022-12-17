@@ -1,8 +1,8 @@
 import { initializeApp } from "firebase/app";
 import {
   getAuth,
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,signOut
+  signInWithEmailAndPassword,initializeAuth,
+  createUserWithEmailAndPassword,browserSessionPersistence
 } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { initializeFirestore } from "firebase/firestore";
@@ -17,11 +17,16 @@ const firebaseConfig = {
 
 
 export const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app,{
+  persistence: browserSessionPersistence,
+  popupRedirectResolver: undefined,
+});
 export const storage = getStorage(app);
 export const db = initializeFirestore(app, {
   experimentalForceLongPolling: true,
 });
+
+
 
 export async function signIn(email, password) {
   let response;

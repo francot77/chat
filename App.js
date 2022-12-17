@@ -5,7 +5,7 @@ import * as Device from 'expo-device';
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+import { createNativeStackNavigator  } from "@react-navigation/native-stack";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import SignIn from "./screens/SignIn";
 import * as TaskManager from 'expo-task-manager'
@@ -22,13 +22,14 @@ import Chat from './screens/Chat'
 import ChatHeader from './components/ChatHeader'
 import * as Notifications from 'expo-notifications';
 import GlobalContext from "./context/Context";
+import ForgotPassword from "./screens/ForgotPassword";
 LogBox.ignoreLogs([
   "Setting a timer",
   "AsyncStorage has been extracted from react-native core and will be removed in a future release.",
   "Method has been deprecated. Please instead use"
 ]);
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator ();
 const Tab = createMaterialTopTabNavigator();
 
 Notifications.setNotificationHandler(null);
@@ -43,7 +44,9 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrUser(user);
-      }else(setCurrUser(null))
+      }else{
+        setCurrUser(null)
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -62,10 +65,15 @@ function App() {
       {!currUser && !loading ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="signIn" component={SignIn} />
+          <Stack.Screen
+          name="forgotpassword"
+          options={{ title: "Recuperar Contraseña",headerShown:true }}
+          component={ForgotPassword}
+        />
         </Stack.Navigator>
       ) : (
         <Stack.Navigator
-          screenOptions={{
+          screenOptions={{headerLeft:null,
             headerStyle: {
               backgroundColor: colors.foreground,
               shadowOpacity: 0,
@@ -83,7 +91,7 @@ function App() {
           )}
           <Stack.Screen
             name="home"
-            options={{ title: "Online English MBG" }}
+            options={{ title: "Online English MBG",headerLeft:null }}
             component={Home}
           />
           <Stack.Screen
@@ -196,8 +204,7 @@ useEffect(() => {
         alert('Failed to get push token for push notification!');
         return;
       }
-      token = (await Notifications.getExpoPushTokenAsync()).data;     
-      console.log("APP.js: "+token);
+      token = (await Notifications.getExpoPushTokenAsync()).data;      
       setExpoPushToken(token)
     } else {
       alert('Must use physical device for Push Notifications');
@@ -221,16 +228,12 @@ useEffect(() => {
     <Tab.Navigator
       screenOptions={({ route }) => {
         return {
-          tabBarLabel: () => {
-            if (route.name === "photo") {
-              return <Ionicons name="camera" size={20} color={colors.white} />;
-            } else {
+          tabBarLabel: () => {            
               return (
                 <Text style={{ color: colors.white }}>
                   {route.name.toLocaleUpperCase()}
                 </Text>
-              );
-            }
+              );            
           },
           tabBarShowIcon: true,
           tabBarLabelStyle: {

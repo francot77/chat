@@ -1,23 +1,34 @@
-import React, { useContext, useState } from "react";
-import { Alert,View, Text, Image, TextInput, Button, Modal,TouchableOpacity } from "react-native";
+import React, { useContext, useState,useEffect } from "react";
+import { Alert,View, Text, Image, TextInput, Button, Modal,TouchableOpacity, ActivityIndicator } from "react-native";
 import { Ionicons } from '@expo/vector-icons'; 
 import Context from "../context/Context";
-
 import { signIn, signUp } from "../firebase";
-export default function SignIn() {
+import { save,getValueFor,STORAGE_EMAIL,STORAGE_PW} from "../utils";
+export default function SignIn(props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [repeatPassword, setRepeatPassword] = useState("");
   const [mode, setMode] = useState("signIn");
   const [modalVisible, setModalVisible] = useState(false);
   const [modalText, setModalText] = useState("");
+  const [check, setCheck] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const {
     theme: { colors },
   } = useContext(Context);
 
-  async function handlePress() {
+
+
+
+  async function handlePress(e,pw) {
     
     if (mode === "signUp") {
-      signUp(email,password).then((res)=>{
+      if(repeatPassword !== password) {
+        setModalText("Las contaseñas no coinciden")
+        setModalVisible(true)
+        return
+      }
+      signUp(e,pw).then((res)=>{
         
         switch (res) {
           case "invalid email!":
@@ -36,7 +47,7 @@ export default function SignIn() {
       })
     }
     if (mode === "signIn") {
-      signIn(email,password).then((res)=>{
+      signIn(e,pw).then((res)=>{
       
         switch (res) {
           case "auth/invalid-email":
@@ -54,11 +65,34 @@ export default function SignIn() {
         }
       })
   }
+
+  if(check){
+    save(STORAGE_EMAIL,String(email))
+    save(STORAGE_PW,String(password))
+  }
 }
+
+useEffect(() => {
+  const fetchData = async ()=>{
+    const rest = await Promise.all([getValueFor(STORAGE_EMAIL),getValueFor(STORAGE_PW)]) 
+    
+    if(rest[0]!==null&&rest[1]!==null){
+      handlePress(rest[0],rest[1])
+    }else setIsLoading(false)
+    
+  }
+  fetchData()
+}, []);
+
+  if(isLoading) return(
+    <View style={{justifyContent:"center",alignItems:"center",flex:1}}>
+      <ActivityIndicator size={50} color="blue"/>
+    </View>
+  )
   return (
     <View
       style={{
-        flex: 1,
+        flex: 1,        
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: colors.white,
@@ -74,9 +108,8 @@ export default function SignIn() {
         style={{ width: 180, height: 180 }}
         resizeMode="cover"
       />
-      <View style={{ marginTop: 20 }}>
-      <View style={{alignItems:"center"}}>
-        
+      <View style={{ marginTop: 20,width:"65%" }}>
+      <View style={{alignItems:"center"}}>        
         {mode === "signUp"
               ? <Text style={{fontSize:25,fontWeight:"400",marginBottom:7}}>Registrarse</Text>
               : <Text style={{fontSize:25,fontWeight:"400",marginBottom:7}}>Iniciar sesion</Text>}
@@ -100,12 +133,52 @@ export default function SignIn() {
             marginTop: 20
           }}
         />
+        {mode ==="signUp"?<TextInput
+        placeholder="Repeat Password"
+        value={repeatPassword}
+        onChangeText={setRepeatPassword}
+        secureTextEntry={true}
+        style={{
+          borderBottomColor: colors.primary,
+          borderBottomWidth: 2,
+          marginTop: 20
+        }}
+      />:null}
+      {mode ==="signIn"?
+      <View style={{flexDirection:"row",justifyContent:"space-between"}}>
+<TouchableOpacity
+        style={{ marginTop: 15, flexDirection:"column",alignItems:"center"}}
+        onPress={()=>{
+         setCheck(!check)
+        }}
+      >
+        <Text style={{ color: colors.secondaryText }}>
+         Recordar usuario
+        </Text>
+        {check?<Ionicons name="checkbox-sharp" size={24} color="black" />:<Ionicons name="square-outline" size={24} color="black" />}
+      </TouchableOpacity>
+        <TouchableOpacity
+        style={{ marginTop: 15, flexDirection:"column",alignItems:"center"}}
+        onPress={()=>{
+          props.navigation.navigate('forgotpassword');
+        }}
+      >
+        <Text style={{ color: colors.secondaryText }}>
+         Olvidaste tu Contraseña?
+        </Text>
+        <Text style={{ color: colors.primary }}>
+          Recuperar
+        </Text>
+      </TouchableOpacity>
+          </View>
+        :null}
         <View style={{ marginTop: 20 }}>
+          
           <Button
             title={mode === "signUp" ? "Registrarse" : "Iniciar sesion"}
             disabled={!password || !email}
             color={colors.primary}
-            onPress={handlePress}
+            onPress={()=>handlePress(email,password)}
           />
         </View>
         <TouchableOpacity
@@ -125,6 +198,7 @@ export default function SignIn() {
               : "Registrate"}
           </Text>
         </TouchableOpacity>
+        
       </View>
       <Modal
       transparent={true}

@@ -31,6 +31,8 @@ export default function UserProfile() {
     (async () => {
       const status = await askForPermission();
       setPermissionStatus(status);
+      
+      if(currentUser.photoURL) setSelectedImage(currentUser.photoURL)
     })();
   }, []);
 

@@ -37,7 +37,7 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
  const roomId = randomId;
  const roomRef = doc(db, "rooms", roomId);
  //const roomMessagesRef = collection(db, "rooms", roomId, "messages");
- 
+ console.log(randomId)
  const senderUser = currentUser.photoURL
  ? {
      name: currentUser.displayName,
@@ -89,8 +89,12 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
   }
 
   async function newhandlePress(){      
+//consultar db si hay room, insertar en ese room, si no, crear room
+
+console.log("asdasd")
+
     setIsLoading(true)        
-        const currUserData = {
+        /* const currUserData = {
           displayName: currentUser.displayName,
           email: currentUser.email,
         };
@@ -107,23 +111,26 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
         const roomData = {
           participants: [currUserData, userBData],
           participantsArray: [currentUser.email, user.email],
-        };
+        }; */
+        //await setDoc(roomRef, roomData).then(
         try {          
-          await setDoc(roomRef, roomData).then(
-            await setDoc(doc(db, "users", currentUser.uid), { teacher:teacherName },{merge:true})
-          )
+          await setDoc(doc(db, "users", currentUser.uid), { teacher:teacherName },{merge:true}).then(
+            navigation.replace("home")
+            )
+        
         } catch (error) {
           setIsLoading(false)
           console.log(error);
         }
       
-      const emailHash = `${currentUser.email}:${user.email}`;
+      /* const emailHash = `${currentUser.email}:${user.email}`;
       setRoomHash(emailHash);
       if (user.photoURL) {
         await sendImage(user.photoURL, emailHash);
-      }else sendImage(userIcon,emailHash)
-      navigation.replace("home")
+      }else sendImage(userIcon,emailHash) */
   }
+
+
   if (isLoading) return (<View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
   <ActivityIndicator size={55} color={colors.primary}/>
 </View>)

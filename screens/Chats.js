@@ -1,13 +1,13 @@
 import { collection, onSnapshot, query, where,updateDoc } from "@firebase/firestore";
 import React, { useContext, useEffect,useState } from "react";
-import { View, Text, ActivityIndicator, Button } from "react-native";
+import { View, Text, ActivityIndicator, Button,TouchableOpacity } from "react-native";
 import GlobalContext from "../context/Context";
 import { auth, db } from "../firebase";
+import { signOut } from "firebase/auth";
 import { doc, setDoc,getDocs } from "@firebase/firestore";
 import ListItem from "../components/ListItem";
-import { TouchableOpacity } from "react-native-gesture-handler";
 import { nanoid } from "nanoid";
-import { uploadImage } from "../utils";
+import { uploadImage,deleteItem,STORAGE_EMAIL,STORAGE_PW } from "../utils";
 
 export default function Chats(props) {
   let token = props.expoPushToken
@@ -172,6 +172,14 @@ useEffect(()=>{
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const fetchData = async ()=>{
+      if(userData.isAccepted!==undefined){
+        await getTeacher(userData.teacher)
+      }
+    }
+    fetchData()
+  }, [userData]);
 
   if(isLoading) return <View style={{ flex: 1, padding: 5, paddingRight: 10,alignItems:"center",justifyContent:"center" }}><ActivityIndicator size={55} color={colors.primary}/></View>  
   return (
@@ -189,7 +197,7 @@ useEffect(()=>{
       {rooms.length<1&&isAccepted?<View style={{justifyContent:"center",alignItems:"center"}}><Text style={{fontSize:25,fontWeight:"bold"}}>Tu Profesora es: {userData.teacher}</Text>
       <TouchableOpacity
       onPress={async()=>{
-        await getTeacher(userData.teacher)
+        
         console.log(teacherData)
         await newhandlePress()
       }}
@@ -204,7 +212,9 @@ useEffect(()=>{
             color={colors.primary}
             onPress={ async ()=>{
               try {
-                await auth.signOut()
+                
+                await Promise.all([deleteItem(STORAGE_EMAIL),deleteItem(STORAGE_PW),signOut(auth),])
+
               } catch (error) {
                 console.log(error)
               }

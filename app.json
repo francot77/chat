@@ -2,7 +2,7 @@
   "expo": {
     "name": "OEnglishMBG",
     "slug": "OEnglishMBG",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -17,7 +17,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.OEnglishMBG"
     },
     "notification": {
       "icon": "./assets/pushn.png",
@@ -37,6 +38,6 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }    
+    }
   }
 }
