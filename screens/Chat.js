@@ -169,7 +169,7 @@ export default function Chat() {
 
   async function handlePhotoPicker() {
     const result = await pickImage();
-    if (!result.cancelled) {
+    if (!result.canceled) {
       await sendImage(result.uri);
     }
   }
@@ -207,16 +207,10 @@ export default function Chat() {
         renderAvatar={null}
         renderActions={(props) => (
           <Actions
-            {...props}
-            containerStyle={{
-              position: "absolute",
-              right: 50,
-              bottom: 5,
-              zIndex: 9999,
-            }}
+            {...props}            
             onPressActionButton={handlePhotoPicker}
             icon={() => (
-              <Ionicons name="camera" size={30} color={colors.iconGray} />
+              <Ionicons name="camera" size={25} color={colors.iconGray} />
             )}
           />
         )}
@@ -244,8 +238,8 @@ export default function Chat() {
                     },
                     true
                   );
-
-                  sendPushNotification(expoToken,text)
+                    console.log(expoToken)
+                  {expoToken !== "" ? sendPushNotification(expoToken,text):null}
                 }
               }}
             >

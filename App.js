@@ -5,9 +5,11 @@ import * as Device from 'expo-device';
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase";
 import { NavigationContainer } from "@react-navigation/native";
-import { createStackNavigator } from "@react-navigation/stack";
+import { createNativeStackNavigator  } from "@react-navigation/native-stack";
 import { createMaterialTopTabNavigator } from "@react-navigation/material-top-tabs";
 import SignIn from "./screens/SignIn";
+import * as TaskManager from 'expo-task-manager'
+const BACKGROUND_NOTIFICATION_TASK = 'BACKGROUND-NOTIFICATION-TASK'
 import ContextWrapper from "./context/ContextWrapper";
 import Context from "./context/Context";
 import Profile from "./screens/Profile";
@@ -15,17 +17,19 @@ import Chats from "./screens/Chats";
 import Teacher from "./screens/Teacher"
 import { Ionicons } from "@expo/vector-icons";
 import Contacts from "./screens/Contacts";
+import UserProfile from "./screens/UserProfile";
 import Chat from './screens/Chat'
 import ChatHeader from './components/ChatHeader'
 import * as Notifications from 'expo-notifications';
 import GlobalContext from "./context/Context";
+import ForgotPassword from "./screens/ForgotPassword";
 LogBox.ignoreLogs([
   "Setting a timer",
   "AsyncStorage has been extracted from react-native core and will be removed in a future release.",
   "Method has been deprecated. Please instead use"
 ]);
 
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator ();
 const Tab = createMaterialTopTabNavigator();
 
 Notifications.setNotificationHandler(null);
@@ -40,7 +44,9 @@ function App() {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrUser(user);
-      }else(setCurrUser(null))
+      }else{
+        setCurrUser(null)
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -59,10 +65,15 @@ function App() {
       {!currUser && !loading ? (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="signIn" component={SignIn} />
+          <Stack.Screen
+          name="forgotpassword"
+          options={{ title: "Recuperar Contraseña",headerShown:true }}
+          component={ForgotPassword}
+        />
         </Stack.Navigator>
       ) : (
         <Stack.Navigator
-          screenOptions={{
+          screenOptions={{headerLeft:null,
             headerStyle: {
               backgroundColor: colors.foreground,
               shadowOpacity: 0,
@@ -80,12 +91,12 @@ function App() {
           )}
           <Stack.Screen
             name="home"
-            options={{ title: "Online English MBG" }}
+            options={{ title: "Online English MBG",headerLeft:null }}
             component={Home}
           />
           <Stack.Screen
           name="teacher"
-          options={{ title: "Select Teacher",headerLeft:null}}
+          options={{ title: "Selecciona profesora",headerLeft:null}}
           component={Teacher}
         />
           <Stack.Screen
@@ -102,8 +113,9 @@ function App() {
 function Home() {
   const [expoPushToken, setExpoPushToken] = useState('');
   const [notification, setNotification] = useState(false);  
-  const notificationListener = useRef();
-  const responseListener = useRef();
+  const [pncount, setPncount] = useState(0);
+  //const notificationListener = useRef();
+  //const responseListener = useRef();
 
   useEffect(() => {
     registerForPushNotificationsAsync().then(token => {
@@ -111,10 +123,10 @@ function Home() {
       //Storage.save(EXPO_TOKEN,String(token))
     });
     // This listener is fired whenever a notification is received while the app is foregrounded
-    notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
+    /* notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
       setNotification(notification);
     });
-
+    
     // This listener is fired whenever a user taps on or interacts with a notification (works when app is foregrounded, backgrounded, or killed)
     responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
       if (response.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
@@ -125,8 +137,59 @@ function Home() {
     return () => {
       Notifications.removeNotificationSubscription(notificationListener.current);
       Notifications.removeNotificationSubscription(responseListener.current);
-    };
+    }; */
   }, []);
+
+// defines how device should handle a notification when the app is running (foreground notifications)
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: true,
+  }),
+})
+
+const handleNewNotification = async notificationObject => {
+  try {
+    const newNotification = {
+      id: notificationObject.messageId,
+      date: notificationObject.sentTime,
+      title: notificationObject.data.title,
+      body: notificationObject.data.message,
+      data: JSON.parse(notificationObject.data.body),
+    }
+    // add the code to do what you need with the received notification  and, e.g., set badge number on app icon
+    //console.log(newNotification)
+    await Notifications.setBadgeCountAsync(1)
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+TaskManager.defineTask(
+  BACKGROUND_NOTIFICATION_TASK,
+  ({ data, error, executionInfo }) => handleNewNotification(data.notification)
+)
+
+useEffect(() => {
+  // register task to run whenever is received while the app is in the background
+  Notifications.registerTaskAsync(BACKGROUND_NOTIFICATION_TASK)
+
+  // listener triggered whenever a notification is received while the app is in the foreground
+  const foregroundReceivedNotificationSubscription = Notifications.addNotificationReceivedListener(
+    notification => {
+      handleNewNotification(notification.request.trigger.remoteMessage)
+    }
+  )
+
+  return () => {
+    // cleanup the listener and task registry
+    foregroundReceivedNotificationSubscription.remove()
+    Notifications.unregisterTaskAsync(BACKGROUND_NOTIFICATION_TASK)
+  }
+}, [])
+
+
 
   async function registerForPushNotificationsAsync() {
     let token;
@@ -141,8 +204,7 @@ function Home() {
         alert('Failed to get push token for push notification!');
         return;
       }
-      token = (await Notifications.getExpoPushTokenAsync()).data;     
-      console.log("APP.js: "+token);
+      token = (await Notifications.getExpoPushTokenAsync()).data;      
       setExpoPushToken(token)
     } else {
       alert('Must use physical device for Push Notifications');
@@ -166,16 +228,12 @@ function Home() {
     <Tab.Navigator
       screenOptions={({ route }) => {
         return {
-          tabBarLabel: () => {
-            if (route.name === "photo") {
-              return <Ionicons name="camera" size={20} color={colors.white} />;
-            } else {
+          tabBarLabel: () => {            
               return (
                 <Text style={{ color: colors.white }}>
                   {route.name.toLocaleUpperCase()}
                 </Text>
-              );
-            }
+              );            
           },
           tabBarShowIcon: true,
           tabBarLabelStyle: {
@@ -194,6 +252,7 @@ function Home() {
       <Tab.Screen name="chats">
       {(navigation) => <Chats {...navigation} expoPushToken={expoPushToken} />}
       </Tab.Screen>
+      <Tab.Screen name="mi perfil" component={UserProfile}/>
     </Tab.Navigator>
   );
 }

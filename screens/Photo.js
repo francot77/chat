@@ -10,7 +10,7 @@ export default function Photo() {
     const unsubscribe = navigation.addListener("focus", async () => {
       const result = await pickImage();
       navigation.navigate("contacts", { image: result });
-      if (result.cancelled) {
+      if (result.canceled) {
         setCanceled(true);
         navigation.navigate("chats")
       }

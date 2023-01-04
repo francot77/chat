@@ -12,22 +12,23 @@ import {
 } from "react-native";
 import Constants from "expo-constants";
 import GlobalContext from "../context/Context";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { auth, db } from "../firebase";
 
-import { doc, setDoc,addDoc,updateDoc, query, where,collection,onSnapshot } from "@firebase/firestore";
+import { doc, setDoc,updateDoc, query, where,collection,onSnapshot } from "@firebase/firestore";
 import { useNavigation } from "@react-navigation/native";
 let data = []
 let images = []
 
 const randomId = nanoid();
+const userIcon = "https://firebasestorage.googleapis.com/v0/b/englishchat-8f15f.appspot.com/o/images%2Fuser-icon.png?alt=media&token=9e46037b-0bbd-48ed-b806-0fd14010eca4"
 
-export default function Profile() {
+export default function Teacher() {
 const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
  const [selected, setSelected] = useState("");
  const [teacherName, setTeacherName] = useState("");
  const [users, setUsers] = useState([]);
  const [user, setUser] = useState(null);
+ const [disable, setDisable] = useState(true);
  const [isLoading, setIsLoading] = useState(false);
  const [image, setImage] = useState("");
  const [roomHash, setRoomHash] = useState("");
@@ -35,8 +36,8 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
  //room asing id nd ref
  const roomId = randomId;
  const roomRef = doc(db, "rooms", roomId);
- const roomMessagesRef = collection(db, "rooms", roomId, "messages");
- 
+ //const roomMessagesRef = collection(db, "rooms", roomId, "messages");
+ console.log(randomId)
  const senderUser = currentUser.photoURL
  ? {
      name: currentUser.displayName,
@@ -59,6 +60,7 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
       ...e.data()
      }))
     if(parsedUser !== undefined){
+      data=[]
       parsedUser.map((e)=>{
         data.push({key:e.uid,value:e.displayName})
         images.push({key:e.uid,url:e.photoURL})
@@ -86,16 +88,13 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
     ]);
   }
 
-  async function handlePress(user) {
-    let room = unfilteredRooms.find((room) =>
-      room.participantsArray.includes(user.email)
-    )
-    navigation.replace("chat", { user, room, image:user.image })
-  }
- 
   async function newhandlePress(){      
+//consultar db si hay room, insertar en ese room, si no, crear room
+
+console.log("asdasd")
+
     setIsLoading(true)        
-        const currUserData = {
+        /* const currUserData = {
           displayName: currentUser.displayName,
           email: currentUser.email,
         };
@@ -112,21 +111,26 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
         const roomData = {
           participants: [currUserData, userBData],
           participantsArray: [currentUser.email, user.email],
-        };
-        try {
-          await setDoc(roomRef, roomData);
+        }; */
+        //await setDoc(roomRef, roomData).then(
+        try {          
+          await setDoc(doc(db, "users", currentUser.uid), { teacher:teacherName },{merge:true}).then(
+            navigation.replace("home")
+            )
+        
         } catch (error) {
           setIsLoading(false)
           console.log(error);
         }
       
-      const emailHash = `${currentUser.email}:${user.email}`;
+      /* const emailHash = `${currentUser.email}:${user.email}`;
       setRoomHash(emailHash);
-      if (user.photoURL ) {
+      if (user.photoURL) {
         await sendImage(user.photoURL, emailHash);
-      }
-      navigation.replace("home")
+      }else sendImage(userIcon,emailHash) */
   }
+
+
   if (isLoading) return (<View style={{flex:1,justifyContent:"center",alignItems:"center"}}>
   <ActivityIndicator size={55} color={colors.primary}/>
 </View>)
@@ -145,11 +149,12 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
       >
 
         <Text style={{ fontSize: 25,fontWeight:"bold", color: colors.text, marginTop: 20,marginBottom:25}}>
-          Please select your teacher
+          Selecciona tu profesora:
         </Text>
         <View style={{width:"90%"}}>
         <SelectList data={data} setSelected={setSelected}
-          onSelect={()=>{            
+          onSelect={()=>{
+            setDisable(false)
             let name = data.find(e => e.key == selected)
             let image = images.find(e=>e.key == selected)
             let user = users.find(e=>e.uid == selected)
@@ -162,7 +167,7 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
          inputStyles={{fontSize:25}}
          boxStyles={{borderWidth:3,borderColor:colors.primary}} searchPlaceholder=""/>
         {selected && image !=""?
-        <View style={{flexDirection:"column",justifyContent:"center",alignItems:"center"}}><Text style={{fontSize:25,fontWeight:"bold",marginBottom:20}}>Teacher: {teacherName}</Text>
+        <View style={{flexDirection:"column",justifyContent:"center",alignItems:"center"}}><Text style={{fontSize:25,fontWeight:"bold",marginBottom:20}}>Nombre: {teacherName}</Text>
         <Image style={{width: '70%', height: '65%',resizeMode:"stretch",borderRadius:250}} source={{uri:image}}/>
         </View>:<View></View>}
         </View>
@@ -171,7 +176,7 @@ const { unfilteredRooms, rooms ,theme: { colors } } = useContext(GlobalContext);
             title="Next"
             color={colors.secondary}
             onPress={newhandlePress}
-            disabled={false}
+            disabled={disable}
           />
         </View>
       </View>

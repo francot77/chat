@@ -3,6 +3,7 @@ import "react-native-get-random-values";
 import { nanoid }from 'nanoid'
 import {ref, uploadBytes, getDownloadURL} from 'firebase/storage'
 import { storage } from "./firebase"
+import * as SecureStore from 'expo-secure-store';
 export async function pickImage() {
   let result = ImagePicker.launchCameraAsync();
   return result;
@@ -10,6 +11,23 @@ export async function pickImage() {
 export async function askForPermission() {
   const { status } = await ImagePicker.requestCameraPermissionsAsync();
   return status;
+}
+
+export async function save(key, value) {
+  await SecureStore.setItemAsync(key, value);
+}
+
+export async function deleteItem(key) {
+  await SecureStore.deleteItemAsync(key);
+}
+
+export const STORAGE_EMAIL = "STORAGE_USER_EMAIL"
+export const STORAGE_PW = "STORAGE_USER_PW"
+
+export async function getValueFor(key) {
+  let res
+  res = await SecureStore.getItemAsync(key);
+  return res;
 }
 
 export async function uploadImage(uri, path, fName) {
@@ -48,7 +66,7 @@ export async function uploadImage(uri, path, fName) {
 const palette = {
   tealGreen: "#128c7e",
   tealGreenDark: "#075e54",
-  violet:"#AB60DE",
+  violet:"#4385fd",
   green: "#25d366",
   lime: "#dcf8c6",
   skyblue: "#34b7f1",
